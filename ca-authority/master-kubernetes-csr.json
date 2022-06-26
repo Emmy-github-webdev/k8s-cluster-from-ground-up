@@ -11,7 +11,7 @@
    "ip-172-31-0-10.us-east-1.compute.internal",
    "ip-172-31-0-11.us-east-1.compute.internal",
    "ip-172-31-0-12.us-east-1.compute.internal",
-   "k8s-cluster-from-ground-up-8c0c0c849ade75d3.elb.us-east-1.amazonaws.com",
+   "k8s-cluster-from-ground-up-8447703875cda670.elb.us-east-1.amazonaws.com",
    "kubernetes",
    "kubernetes.default",
    "kubernetes.default.svc",

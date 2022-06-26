@@ -1,21 +1,34 @@
 NAME=k8s-cluster-from-ground-up
-VPC_ID=vpc-07f6a88e1fd2bdd78
+VPC_ID=vpc-0eb27ddb88174f6e2
 AWS_REGION=us-east-1
-DHCP_OPTION_SET_ID=dopt-08f6d37f12aa3f16b
-SUBNET_ID=subnet-06a9502748c5f559a
-INTERNET_GATEWAY_ID=igw-0c320649fa93ebd4a
-ROUTE_TABLE_ID=rtb-02d8aafe60cb3617d
-SECURITY_GROUP_ID=sg-09186e2f7e236c756
-LOAD_BALANCER_ARN=arn:aws:elasticloadbalancing:us-east-1:680361416611:loadbalancer/net/k8s-cluster-from-ground-up/8c0c0c849ade75d3
-TARGET_GROUP_ARN=arn:aws:elasticloadbalancing:us-east-1:680361416611:targetgroup/k8s-cluster-from-ground-up/c0da742984e03a4e
-KUBERNETES_PUBLIC_ADDRESS=k8s-cluster-from-ground-up-8c0c0c849ade75d3.elb.us-east-1.amazonaws.com
+DHCP_OPTION_SET_ID=dopt-058b394214161430c
+SUBNET_ID=subnet-0b1d434e0cc31efc3
+INTERNET_GATEWAY_ID=igw-0717e4d2a4b3688f1
+ROUTE_TABLE_ID=rtb-067b87921d5f76238
+SECURITY_GROUP_ID=sg-08cc9d568a3f2e827
+LOAD_BALANCER_ARN=arn:aws:elasticloadbalancing:us-east-1:680361416611:loadbalancer/net/k8s-cluster-from-ground-up/8447703875cda670
+TARGET_GROUP_ARN=arn:aws:elasticloadbalancing:us-east-1:680361416611:targetgroup/k8s-cluster-from-ground-up/2ccdc486f66a2a7f
 IMAGE_ID=ami-0b0ea68c435eb488d
+
 
 
 # Distribute files
 
 # Worker node
 
+++++++++++++++++++++++++++++++++++++++++++++++++++
+# Loop through all the 3 worker nodes once
+for i in 0 1 2; do
+  instance="${NAME}-worker-${i}"
+  external_ip=$(aws ec2 describe-instances \
+    --filters "Name=tag:Name,Values=${instance}" \
+    --output text --query 'Reservations[].Instances[].PublicIpAddress')
+  scp -i ../ssh/${NAME}.id_rsa admin.kubeconfig \
+    kube-proxy.kubeconfig ${instance}.kubeconfig ubuntu@${external_ip}:~/; 
+done
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# Individual worker node at a time
 for i in 0; do
   instance="${NAME}-worker-${i}"
   external_ip=$(aws ec2 describe-instances \
@@ -24,6 +37,8 @@ for i in 0; do
   scp -i ../ssh/${NAME}.id_rsa \
     kube-proxy.kubeconfig k8s-cluster-from-ground-up-worker-${i}.kubeconfig ubuntu@${external_ip}:~/; \
 done
+
+
 
 for i in 1; do
   instance="${NAME}-worker-${i}"
@@ -45,6 +60,9 @@ done
 
 # Master node
 
+++++++++++++++++++++++++++++++++++++++++++++++++++
+# Loop through all the 3 master nodes once
+
 for i in 0 1 2; do
 instance="${NAME}-master-${i}" \
   external_ip=$(aws ec2 describe-instances \
@@ -55,6 +73,19 @@ instance="${NAME}-master-${i}" \
     admin.kubeconfig kube-controller-manager.kubeconfig kube-scheduler.kubeconfig ubuntu@${external_ip}:~/;
 done
 
+# Export encryption-config.yaml
+
+for i in 0 1 2; do
+instance="${NAME}-master-${i}" \
+  external_ip=$(aws ec2 describe-instances \
+    --filters "Name=tag:Name,Values=${instance}" \
+    --output text --query 'Reservations[].Instances[].PublicIpAddress')
+  scp -i ../ssh/${NAME}.id_rsa \
+    ca.pem ca-key.pem service-account-key.pem service-account.pem \
+    encryption-config.yaml ubuntu@${external_ip}:~/;
+done
+
 Solution to etcd server error
 
 https://linuxhandbook.com/sudo-unable-resolve-host/
+
